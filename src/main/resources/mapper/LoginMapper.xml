@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org/DTD Mapper 3.0" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.guet.cms3.mapper.LoginMapper">
+    <resultMap id="LoginVOResultMap" type="cn.edu.guet.cms3.vo.UserLoginVO">
+        <!-- 用户基础信息映射 -->
+        <id property="id" column="user_id" />
+        <result property="username" column="username" />
+        <!-- 权限列表映射 (一对多) -->
+        <collection property="permissionList" ofType="cn.edu.guet.cms3.entity.Permission">
+            <id property="id" column="perm_id" />
+            <result property="name" column="perm_name" />
+            <result property="menuType" column="perm_type" />
+            <result property="code" column="perm_code" />
+            <result property="path" column="perm_path" />
+            <result property="parentId" column="parent_id" />
+            <result property="sort" column="sort" />
+            <result property="createTime" column="perm_create_time" />
+        </collection>
+    </resultMap>
+
+    <select id="login" parameterType="cn.edu.guet.cms3.dto.LoginDTO" resultMap="LoginVOResultMap">
+        SELECT
+            u.id AS user_id,
+            u.username,
+            p.id AS perm_id,
+            p.name AS perm_name,
+            p.type AS perm_type,
+            p.code AS perm_code,
+            p.path AS perm_path,
+            p.parent_id,
+            p.sort,
+            p.create_time AS perm_create_time
+        FROM cms.user u
+                 -- 关联用户角色表
+                 LEFT JOIN cms.user_role ur ON u.id = ur.user_id
+            -- 关联角色权限表
+                 LEFT JOIN cms.role_permission rp ON ur.role_id = rp.role_id
+            -- 关联权限表
+                 LEFT JOIN cms.permission p ON rp.permission_id = p.id
+        WHERE u.username = #{username}
+          AND u.password = #{password}
+        ORDER BY p.sort ASC
+    </select>
+
+</mapper>
