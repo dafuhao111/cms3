@@ -19,7 +19,7 @@ public class LoginController {
 
     @PostConstruct
     public void init() {
-        log.info("这是postConstruct");
+        log.info("这是postConstruct111");
         log.info("loginService {}", loginService);
     }
 
