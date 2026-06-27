@@ -2,7 +2,7 @@
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch: # 允许在 GitHub 页面手动点击触发
 
 jobs:
