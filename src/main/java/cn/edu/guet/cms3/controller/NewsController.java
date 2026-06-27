@@ -66,13 +66,13 @@ public class NewsController {
     @RequiresPermission("content:news:audit")
     @PutMapping("/{id}/approve")
     public Result<NewsVO> approveNews(@PathVariable Long id) {
-        return Result.success("新闻审核已通过111", newsService.approveNews(id));
+        return Result.success("新闻审核已通过", newsService.approveNews(id));
     }
 
     @RequiresPermission("content:news:audit")
     @PutMapping("/{id}/reject")
     public Result<NewsVO> rejectNews(@PathVariable Long id) {
-        return Result.success("新闻已驳回111", newsService.rejectNews(id));
+        return Result.success("新闻已驳回1", newsService.rejectNews(id));
     }
     @PostMapping(value = "/form", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<NewsVO> createNewsWithFiles(
