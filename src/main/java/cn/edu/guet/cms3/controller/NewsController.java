@@ -61,12 +61,12 @@ public class NewsController {
     @DeleteMapping("/{id}")
     public Result<Void> deleteNews(@PathVariable Long id) {
         newsService.deleteNews(id);
-        return Result.success("新闻已删除sas");
+        return Result.success("新闻已删除");
     }
     @RequiresPermission("content:news:audit")
     @PutMapping("/{id}/approve")
     public Result<NewsVO> approveNews(@PathVariable Long id) {
-        return Result.success("新闻审核已通过", newsService.approveNews(id));
+        return Result.success("新闻审核已通过111", newsService.approveNews(id));
     }
 
     @RequiresPermission("content:news:audit")
