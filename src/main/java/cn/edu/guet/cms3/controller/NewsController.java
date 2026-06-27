@@ -66,7 +66,7 @@ public class NewsController {
     @RequiresPermission("content:news:audit")
     @PutMapping("/{id}/approve")
     public Result<NewsVO> approveNews(@PathVariable Long id) {
-        return Result.success("新闻审核已通过", newsService.approveNews(id));
+        return Result.success("新闻审核已通过jjh", newsService.approveNews(id));
     }
 
     @RequiresPermission("content:news:audit")
