@@ -1,25 +1,42 @@
 ﻿name: CMS Deploy
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch: # 允许在 GitHub 页面手动点击触发
+push:
+branches:
+  - main
+workflow_dispatch:
 
 jobs:
-  deploy:
-    runs-on: self-hosted
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+deploy:
+runs-on: self-hosted
+  
+  ```
+steps:
+  - name: Check GitHub Connectivity
+    run: |
+      echo "Testing GitHub connectivity..."
+      curl -I https://github.com || true
+      git ls-remote https://github.com/dafuhao111/cms3.git || true
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+  - name: Checkout code
+    uses: actions/checkout@v4
+    with:
+      fetch-depth: 1
 
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
+  - name: Set up JDK 17
+    uses: actions/setup-java@v4
+    with:
+      java-version: '17'
+      distribution: 'temurin'
 
-      - name: Show build result
-        run: ls -lh target/*.jar
+  - name: Verify Java
+    run: |
+      java -version
+      mvn -version
+
+  - name: Build with Maven
+    run: mvn clean package -DskipTests
+
+  - name: Show build result
+    run: ls -lh target/*.jar
+
