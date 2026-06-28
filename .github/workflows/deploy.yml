@@ -1,107 +1,40 @@
-name: CMS
+﻿name: CMS Deploy
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'pom.xml'
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      force_rebuild:
-        description: '是否强制重新打包构建 (Build & Restart)?'
-        required: true
-        type: boolean
-        default: false
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: self-hosted
 
     steps:
-      # 用最原始、最安全的 Shell 命令代替官方的 actions/checkout，彻底绕过 Node/GLIBC 报错
-      - name: Native Git Checkout with SSH
+      - name: Check GitHub Connectivity
         run: |
-          export PATH=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:$PATH
-          
-          echo "Cleaning up workspace..."
-          find . -mindepth 1 -delete 2>/dev/null || true
-          
-          echo "Cloning private repository via SSH..."
-          # 权限配好后，最标准的原生克隆，既快又稳
-          git clone --depth 1 -b main git@github.com:dafuhao111/cms3.git .
+          echo "Testing GitHub connectivity..."
+          curl -I https://github.com || true
+          git ls-remote https://github.com/dafuhao111/cms3.git || true
 
-      - name: MD5 Fingerprint Detection
-        id: filter
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Verify Java
         run: |
-          export PATH=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:$PATH
-          
-          # 1. 定义存储指纹的物理路径（在 Runner 运行目录之外，保持持久化）
-          CACHE_DIR="/tmp/cms_deploy_cache"
-          mkdir -p $CACHE_DIR
-          OLD_FINGERPRINT="$CACHE_DIR/last_src_md5.txt"
-          
-          # 2. 计算当前 src 目录和 pom.xml 的物理指纹
-          CURRENT_FINGERPRINT=$(find src/ pom.xml -type f -exec md5sum {} + | sort | md5sum | cut -d' ' -f1)
-          echo "Current Source Fingerprint: $CURRENT_FINGERPRINT"
-
-          # 3. 判定逻辑
-          NEED_BUILD="false"
-          
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.force_rebuild }}" = "true" ]; then
-              echo "Decision: Manual Force Build."
-              NEED_BUILD="true"
-          elif [ ! -f "$OLD_FINGERPRINT" ]; then
-              echo "Decision: No cache found. First time build."
-              NEED_BUILD="true"
-          elif [ "$CURRENT_FINGERPRINT" != "$(cat $OLD_FINGERPRINT)" ]; then
-              echo "Decision: Source code changed (Fingerprint mismatch)."
-              NEED_BUILD="true"
-          else
-              echo "Decision: Source code identical. Skip build."
-              NEED_BUILD="false"
-          fi
-
-          # 4. 更新指纹库并设置状态
-          echo "$CURRENT_FINGERPRINT" > "$OLD_FINGERPRINT"
-          
-          if [ "$NEED_BUILD" = "true" ]; then
-              touch ./RUN_MAVEN_BUILD
-              [ -d "target" ] && rm -rf target/
-          fi
-          echo "code_changed=$NEED_BUILD" >> $GITHUB_OUTPUT
+          java -version
+          mvn -version
 
       - name: Build with Maven
-        run: |
-          if [ -f "./RUN_MAVEN_BUILD" ]; then
-              echo "Executing Maven Build..."
-              export JAVA_HOME=/opt/jdk-17.0.12
-              export PATH=$JAVA_HOME/bin:/opt/maven/bin:$PATH
-              mvn clean package -DskipTests
-          else
-              echo "Skip Maven: Source code hash is the same."
-          fi
+        run: mvn clean package -DskipTests
 
-      - name: Local Release and Lifecycle Management
-        run: |
-          export JAVA_HOME=/opt/jdk-17.0.14
-          export PATH=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:$PATH
-          if [ -f "./RUN_MAVEN_BUILD" ]; then
-              echo "Action: Full Versioned Deploy"
-              REL_DIR="/app/cms/releases/${{ github.sha }}"
-              sudo mkdir -p $REL_DIR
-          
-              # 物理保险
-              sudo cp target/*.jar $REL_DIR/my-cms.jar
-              sudo ln -snf $REL_DIR/my-cms.jar /app/cms/current.jar
-          
-              # 保留 5 个版本
-              cd /app/cms/releases && ls -t | tail -n +6 | xargs sudo rm -rf 2>/dev/null || true
-          
-              sudo systemctl restart cms
-              for i in {1..10}; do
-                if ss -tuln | grep -q :8080; then echo "Service UP!"; exit 0; fi
-                sleep 3
-              done
-              exit 1
-          fi
+      - name: Show build result
+        run: ls -lh target/*.jar
