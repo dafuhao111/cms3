@@ -37,8 +37,8 @@ jobs:
           export PATH=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:$PATH
           
           # 1. 定义存储指纹的物理路径（在 Runner 运行目录之外，保持持久化）
-          CACHE_DIR="/tmp/cms_deploy_cache"
-          mkdir -p $CACHE_DIR
+          CACHE_DIR="$RUNNER_TEMP/cms_deploy_cache"
+           mkdir -p "$CACHE_DIR"
           OLD_FINGERPRINT="$CACHE_DIR/last_src_md5.txt"
           
           # 2. 计算当前 src 目录和 pom.xml 的物理指纹
