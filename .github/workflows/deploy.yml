@@ -18,35 +18,30 @@ jobs:
   build-and-deploy:
     runs-on: self-hosted
 
-    # ✅ 全局环境变量：统一配置 Java 和 Maven 路径，避免各步骤重复定义导致遗漏或冲突
+    # ✅ 关键修复：JAVA_HOME = /opt/jdk-17.0.12（与你机器实际路径一致）
     env:
-      JAVA_HOME: /opt/jdk-17.0.12/bin/java  # ⚠️ 必须替换为 runner 机器上真实的 JDK 根目录
-      MAVEN_HOME: /opt/maven       # ⚠️ 确认 Maven 安装路径是否正确
-      PATH: /opt/jdk-17.0.14/bin:/opt/maven/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+      JAVA_HOME: /opt/jdk-17.0.12
+      MAVEN_HOME: /opt/maven
+      PATH: /opt/jdk-17.0.12/bin:/opt/maven/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
 
     steps:
-      # 用最原始、最安全的 Shell 命令代替官方的 actions/checkout，彻底绕过 Node/GLIBC 报错
       - name: Native Git Checkout with SSH
         run: |
           echo "Cleaning up workspace..."
           find . -mindepth 1 -delete 2>/dev/null || true
-          
           echo "Cloning private repository via SSH..."
           git clone --depth 1 -b main git@github.com:dafuhao111/cms3.git .
 
       - name: MD5 Fingerprint Detection
         id: filter
         run: |
-          # 1. 定义存储指纹的物理路径（使用 RUNNER_TEMP 避免 /tmp 权限问题）
           CACHE_DIR="$RUNNER_TEMP/cms_deploy_cache"
           mkdir -p "$CACHE_DIR"
           OLD_FINGERPRINT="$CACHE_DIR/last_src_md5.txt"
           
-          # 2. 计算当前 src 目录和 pom.xml 的物理指纹
           CURRENT_FINGERPRINT=$(find src/ pom.xml -type f -exec md5sum {} + | sort | md5sum | cut -d' ' -f1)
           echo "Current Source Fingerprint: $CURRENT_FINGERPRINT"
 
-          # 3. 判定逻辑
           NEED_BUILD="false"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.force_rebuild }}" = "true" ]; then
               echo "Decision: Manual Force Build."
@@ -55,16 +50,14 @@ jobs:
               echo "Decision: No cache found. First time build."
               NEED_BUILD="true"
           elif [ "$CURRENT_FINGERPRINT" != "$(cat $OLD_FINGERPRINT)" ]; then
-              echo "Decision: Source code changed (Fingerprint mismatch)."
+              echo "Decision: Source code changed."
               NEED_BUILD="true"
           else
               echo "Decision: Source code identical. Skip build."
               NEED_BUILD="false"
           fi
 
-          # 4. 更新指纹库并设置状态
           echo "$CURRENT_FINGERPRINT" > "$OLD_FINGERPRINT"
-          
           if [ "$NEED_BUILD" = "true" ]; then
               touch ./RUN_MAVEN_BUILD
               [ -d "target" ] && rm -rf target/
@@ -76,13 +69,15 @@ jobs:
           if [ -f "./RUN_MAVEN_BUILD" ]; then
               echo "Executing Maven Build..."
           
-              # ✅ 环境校验：防止 JAVA_HOME 路径无效导致 Maven 报 Permission denied 或 not defined
+              # 🔍 强制校验：确保 JAVA_HOME 正确
               if [ ! -x "$JAVA_HOME/bin/java" ]; then
-                  echo "❌ ERROR: JAVA_HOME is invalid or java binary not executable at $JAVA_HOME/bin/java"
-                  echo "Please check the JAVA_HOME path in the workflow env section."
+                  echo "❌ ERROR: Java binary not found at $JAVA_HOME/bin/java"
+                  ls -ld "$JAVA_HOME" || echo "JAVA_HOME dir missing"
                   exit 1
               fi
-              java -version
+          
+              echo "Using Java:"
+              "$JAVA_HOME/bin/java" -version
           
               mvn clean package -DskipTests
           else
@@ -94,25 +89,23 @@ jobs:
           if [ -f "./RUN_MAVEN_BUILD" ]; then
               echo "Action: Full Versioned Deploy"
               REL_DIR="/app/cms/releases/${{ github.sha }}"
-              sudo mkdir -p $REL_DIR
-          
-              # 物理保险
-              sudo cp target/*.jar $REL_DIR/my-cms.jar
-              sudo ln -snf $REL_DIR/my-cms.jar /app/cms/current.jar
+              sudo mkdir -p "$REL_DIR"
+              sudo cp target/*.jar "$REL_DIR/my-cms.jar"
+              sudo ln -snf "$REL_DIR/my-cms.jar" /app/cms/current.jar
           
               # 保留最近 5 个版本
               cd /app/cms/releases && ls -t | tail -n +6 | xargs sudo rm -rf 2>/dev/null || true
           
               sudo systemctl restart cms
               for i in {1..10}; do
-                if ss -tuln | grep -q :8080; then 
-                  echo "Service UP!"
-                  exit 0 
+                if ss -tuln | grep -q :8080; then
+                  echo "✅ Service UP!"
+                  exit 0
                 fi
                 sleep 3
               done
-              echo "❌ Service failed to start within 30 seconds"
+              echo "❌ Service did not start within 30s"
               exit 1
           else
-            echo "Skip Deploy: No new build generated."
+            echo "Skip Deploy: No new build."
           fi
