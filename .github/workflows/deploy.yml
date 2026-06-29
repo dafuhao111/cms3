@@ -75,7 +75,7 @@ jobs:
         run: |
           if [ -f "./RUN_MAVEN_BUILD" ]; then
               echo "Executing Maven Build..."
-              export JAVA_HOME=/opt/jdk-17.0.14
+              export JAVA_HOME=/opt/jdk-17.0.12
               export PATH=$JAVA_HOME/bin:/opt/maven/bin:$PATH
               mvn clean package -DskipTests
           else
@@ -84,8 +84,8 @@ jobs:
 
       - name: Local Release and Lifecycle Management
         run: |
-          export JAVA_HOME=/opt/jdk-17.0.14
-          export PATH=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:$PATH
+          export JAVA_HOME=/opt/jdk-17.0.12
+          export PATH=$JAVA_HOME/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:$PATH
           if [ -f "./RUN_MAVEN_BUILD" ]; then
               echo "Action: Full Versioned Deploy"
               REL_DIR="/app/cms/releases/${{ github.sha }}"
