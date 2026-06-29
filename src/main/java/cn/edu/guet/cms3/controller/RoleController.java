@@ -34,7 +34,7 @@ public class RoleController {
 
     @PutMapping("/{id}")
     public Result<Role> updateRole(@PathVariable Integer id, @RequestBody RoleDTO roleDTO) {
-        return Result.success("角色已更新s", roleService.updateRole(id, roleDTO));
+        return Result.success("角色已更新", roleService.updateRole(id, roleDTO));
     }
 
     @RequiresPermission("role:delete")
