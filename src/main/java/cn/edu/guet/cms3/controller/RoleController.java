@@ -37,6 +37,7 @@ public class RoleController {
         return Result.success("角色已更新", roleService.updateRole(id, roleDTO));
     }
 
+    @RequiresPermission("role:delete")
     @DeleteMapping("/{id}")
     public Result<Void> deleteRole(@PathVariable Integer id) {
         roleService.deleteRole(id);
