@@ -1,6 +1,7 @@
 package cn.edu.guet.cms3.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -18,6 +19,7 @@ public class News {
     private String reviewer;
     private String content;
     private String status;
+    @TableField("create_time")
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private LocalDateTime publishTime;
