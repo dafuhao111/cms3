@@ -21,6 +21,8 @@ public class News {
     private String status;
     @TableField("create_time")
     private LocalDateTime createTime;
+    @TableField("update_time")
     private LocalDateTime updateTime;
+    @TableField("publish_time")
     private LocalDateTime publishTime;
 }

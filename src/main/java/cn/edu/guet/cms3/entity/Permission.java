@@ -19,9 +19,11 @@ public class Permission {
     private MenuType menuType;
     private String code;
     private String path;
+    @TableField("parent_id")
     private Integer parentId;
     @TableField(exist = false)
     private List<Permission> children;
     private Integer sort;
+    @TableField("create_time")
     private LocalDateTime createTime;
 }
